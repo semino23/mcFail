@@ -55,23 +55,9 @@ def generate_ips() -> list[str]:
 
 #                                             scanning for servers
 
-@dataclass
-class Player:
-    id: uuid.UUID
-    name: str
+def scan(ip: IPv4Address):
+    pass
 
-@dataclass
-class Server:
-    ip: IPv4Address
-    players: list[Player]
-
-def analyser(fn):
-    def runner():
-        
-        fn()
-
-@analyser
-def scan_server():
 
 if __name__ == "__main__":
     result: list[str] = generate_ips()
