@@ -2,8 +2,12 @@ import ipaddress
 import random
 import threading
 from ipaddress import IPv4Address, IPv4Network
+from threading import Thread
+
 import mcstatus
 from dataclasses import dataclass
+
+from mcstatus.responses import JavaStatusPlayer, JavaStatusResponse
 
 
 #                                             Generating ip addresses
@@ -56,20 +60,35 @@ class IpGenerator:
         return ips
 
 
-#                                             scanning for servers
-
-
 class Scanner:
-    def __init__(self, network: IPv4Network):
-        self.ips = network.hosts()
+    ips: list[IPv4Address]
 
+    def __init__(self, network: IPv4Network):
+        print("new")
+        self.ips = list(network.hosts())
     def scan(self):
-        for ip_range in self.ips.hosts():
-            print(ip_range)
+         for target in self.ips:
+             try:
+                 res: mcstatus.JavaServer = mcstatus.JavaServer.lookup(str(target), 5)
+                 print(f"found server:\n{res.status()}")
+                 if res.status().players.sample:
+                     print(res.status().players.sample)
+
+             except Exception as e:
+                 pass
+                #print(e)
+                # print(type(res))
+    def write_to_database(self):
+        pass
+    def get_connections(self):
+        pass
+    def analyse(self):
+        pass
+
 
 
 if __name__ == "__main__":
-    scanner_pool = []
-    result: list[IPv4Network] = [IPv4Network(ips) for ips in IpGenerator.generate_ips()]
-    for i in result:
-        scanner_pool.append(Scanner(i))
+    #for ips in IpGenerator.generate_ips():
+        #Scanner(IPv4Network(ips)).scan()
+    Scanner(IPv4Network("127.0.0.1/32")).scan()
+
