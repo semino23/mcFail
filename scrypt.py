@@ -1,16 +1,10 @@
 import ipaddress
 import random
-import threading
-from ipaddress import IPv4Address, IPv4Network
-from threading import Thread
-
+from ipaddress import IPv4Network
 import mcstatus
-from dataclasses import dataclass
-
-from mcstatus.responses import JavaStatusPlayer, JavaStatusResponse
+import sqlite3
 
 
-#                                             Generating ip addresses
 class IpGenerator:
     excluded_networks: list[ipaddress.IPv4Network] = [
         # 🔒 Loopback (localhost only)
@@ -60,35 +54,52 @@ class IpGenerator:
         return ips
 
 
-class Scanner:
-    ips: list[IPv4Address]
+def prepare_database():
+    cur = sqlite3.connect(":memory:").cursor()
+    cur.execute("""
+   create table `players` (
+  `uuid` TEXT not null,
+  `name` TEXT not null,
+  primary key (`uuid`)
+);""")
 
-    def __init__(self, network: IPv4Network):
-        print("new")
-        self.ips = list(network.hosts())
-    def scan(self):
-         for target in self.ips:
-             try:
-                 res: mcstatus.JavaServer = mcstatus.JavaServer.lookup(str(target), 5)
-                 print(f"found server:\n{res.status()}")
-                 if res.status().players.sample:
-                     print(res.status().players.sample)
+    cur.execute("""create table `server` (
+  `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+  `name` TEXT not null,
+  `slots` INTEGER null,
+  `version` TEXT null);""")
 
-             except Exception as e:
-                 pass
-                #print(e)
-                # print(type(res))
-    def write_to_database(self):
-        pass
-    def get_connections(self):
-        pass
-    def analyse(self):
-        pass
+    cur.execute("""
+create table `player_log` (
+  `player_id` TEXT not null,
+  `server_id` INTEGER not null,
+  `column_3` DATETIME not null default current_time
+);""")
 
+
+def log_occurance(server: mcstatus.responses.JavaStatusResponse):
+    print(f"found server:\t{server.players}")
+    if server.players.sample:
+        print(f"with players:\t{server.players.sample}")
+    else:
+        print("with no Player")
+
+
+def scan(ip_range: IPv4Network):
+    ips = ip_range.hosts()
+    print(f"scan: {ips}")
+    for target in ips:
+        try:
+            res: mcstatus.JavaServer = mcstatus.JavaServer.lookup(str(target), 5)
+            log_occurance(res.status())
+        except:
+            pass
+            # print(e)
+            # print(type(res))
 
 
 if __name__ == "__main__":
-    #for ips in IpGenerator.generate_ips():
-        #Scanner(IPv4Network(ips)).scan()
-    Scanner(IPv4Network("127.0.0.1/32")).scan()
+    prepare_database()
+    # generated_ips = IpGenerator.generate_ips()
 
+    scan(IPv4Network("127.0.0.1/32"))
